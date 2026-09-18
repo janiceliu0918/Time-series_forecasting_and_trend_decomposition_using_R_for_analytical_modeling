@@ -1,7 +1,7 @@
 # ==============================================================================
 # Quarterly Expenditure Trend and Seasonal Decomposition
 # Author: Kaiyi (Janice) Liu
-# Target Application: Supply Chain Demand Planning & Inventory Optimization
+# Scope: Descriptive quarterly expenditure analysis
 # ==============================================================================
 
 # 1. ENVIRONMENT SETUP & LIBRARY LOADING
@@ -14,7 +14,7 @@ library(zoo)      # For rolling averages
 
 # 2. DATA INGESTION & PREPROCESSING
 # ------------------------------------------------------------------------------
-# Load historical demand/macroeconomic data
+# Load historical quarterly expenditure data
 # Run from repository root; input is the committed quarterly expenditure CSV.
 raw_data <- read.csv("Timeseries.csv")
 required <- c("Year", "Quarter", "Expenditure")
@@ -37,7 +37,7 @@ demand_data <- raw_data %>%
     # Create a sequential time index for modeling
     Time_Index = row_number(),
     Time_Squared = Time_Index^2,
-    # Log-scale transformation to analyze annualized growth rates
+    # Log-transform expenditure for descriptive trend modeling
     Log_Value = log(Value) 
   )
 
@@ -52,7 +52,7 @@ demand_data$Baseline_Trend <- predict(quad_model)
 
 # 4. CYCLICAL FLUCTUATIONS (MOVING AVERAGE)
 # ------------------------------------------------------------------------------
-# Isolate macroeconomic cycles to prevent bullwhip effect in inventory
+# Smooth short-term variation in log expenditure
 # Using an Order-5 Moving Average to smooth out short-term noise
 demand_data$Cyclical_MA5 <- rollmean(demand_data$Log_Value, 
                                      k = 5, 
@@ -67,20 +67,20 @@ ts_demand <- ts(demand_data$Value, start = c(raw_data$Year[1], raw_data$Quarter[
 # Decompose the time series to extract the exact seasonal coefficients
 decomposed_ts <- decompose(ts_demand, type = "multiplicative")
 
-# Extract seasonal indices (Used for adjusting quarterly safety stock)
+# Extract descriptive quarterly expenditure seasonal indices
 seasonality_factors <- decomposed_ts$figure
-print("Quarterly Seasonality Indices for Inventory Adjustment:")
+print("Quarterly Expenditure Seasonality Indices:")
 print(seasonality_factors)
 
 # 6. DATA VISUALIZATION (EXECUTIVE REPORTING)
 # ------------------------------------------------------------------------------
-# Plot 1: Actual Demand vs. Quadratic Baseline Trend
+# Plot 1: Log Expenditure vs. Quadratic Baseline Trend
 trend_plot <- ggplot(demand_data, aes(x = Time_Index)) +
-  geom_line(aes(y = Log_Value, color = "Actual Log-Demand"), size = 1) +
+  geom_line(aes(y = Log_Value, color = "Observed Log-Expenditure"), size = 1) +
   geom_line(aes(y = Baseline_Trend, color = "Quadratic Trend"), size = 1.2, linetype = "dashed") +
-  labs(title = "Long-Term Demand Trend Analysis",
+  labs(title = "Long-Term Expenditure Trend Analysis",
        x = "Time (Quarters)",
-       y = "Log(Demand Volume)",
+       y = "Log(Expenditure)",
        color = "Legend") +
   theme_minimal()
 
