@@ -1,27 +1,36 @@
-# # Time-Series Forecasting & Trend Decomposition (R)
+# Quarterly expenditure: trend and seasonal decomposition in R
 
-This project demonstrates time-series modeling, trend decomposition, and forecasting techniques using R on structured temporal data.
+## Question and input
 
-Using historical quarterly expenditure data, the model identifies underlying trends, seasonality, and patterns to support better planning and decision-making.
+How do long-term trend and quarterly seasonality appear in the supplied expenditure
+series? `Timeseries.csv` contains 284 ordered quarterly observations with `Year`,
+`Quarter` and positive `Expenditure`. The original external dataset attribution is
+not recorded here; confirm provenance before redistributing it beyond this project.
+This is expenditure data, not verified operational demand or inventory performance.
 
-## Dataset
+## Methods demonstrated
 
-- data.csv: historical quarterly demand data (Year, Quarter, Expenditure)
-## Methods
+- CSV/schema validation and log transformation
+- Quadratic regression of log expenditure against time
+- Centered five-quarter moving-average smoothing
+- Multiplicative quarterly seasonal decomposition
+- Trend and decomposition visualization
 
-- Time Series Decomposition (Trend + Seasonality)
-- Linear and Quadratic Trend Modeling
-- Log Transformation Analysis
-- Seasonal Pattern Visualization
+There is no Random Forest, held-out forecast, forecast-accuracy comparison or claim
+of measured operational improvement. Existing historical images are not treated as
+proof of output from the current script.
 
-## Key Results
+## Reproduce
 
-- Identified upward trend in long-term demand
-- Detected seasonal fluctuations across quarters
-- Compared linear vs quadratic trend fitting
-- Visualized demand patterns using multiple models
+Use a current R 4.x installation. From the repository root:
 
-## Tools
+```bash
+Rscript -e "install.packages(c('ggplot2', 'dplyr', 'zoo'), repos='https://cloud.r-project.org')"
+Rscript forecast_model.R
+```
 
-- R (Time Series Analysis)
-- Data Visualization
+The script fails on missing/invalid columns, nonpositive expenditure or nonconsecutive
+quarters. It writes `outputs/log_trend.png`, `outputs/decomposition.png`,
+`outputs/analysis.csv`, `outputs/seasonality.csv` and `outputs/sessionInfo.txt`.
+The saved session information records package versions for a run; no lockfile or
+cross-version reproducibility guarantee is implied.
