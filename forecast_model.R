@@ -1,5 +1,5 @@
 # ==============================================================================
-# Time-Series Demand Forecasting & Trend Decomposition Model
+# Quarterly Expenditure Trend and Seasonal Decomposition
 # Author: Kaiyi (Janice) Liu
 # Target Application: Supply Chain Demand Planning & Inventory Optimization
 # ==============================================================================
@@ -10,13 +10,23 @@
 library(ggplot2)
 library(dplyr)
 library(zoo)      # For rolling averages
-library(forecast) # For time-series analysis
+
 
 # 2. DATA INGESTION & PREPROCESSING
 # ------------------------------------------------------------------------------
 # Load historical demand/macroeconomic data
-# Note: Ensure 'data.csv' is in the root directory of the repository
-raw_data <- read.csv("data.csv")
+# Run from repository root; input is the committed quarterly expenditure CSV.
+raw_data <- read.csv("Timeseries.csv")
+required <- c("Year", "Quarter", "Expenditure")
+if (!all(required %in% names(raw_data))) stop("Expected Year, Quarter, Expenditure columns")
+if (anyNA(raw_data[required])) stop("Input contains missing values")
+if (!all(vapply(raw_data[required], is.numeric, logical(1)))) stop("Input columns must be numeric")
+if (any(!is.finite(as.matrix(raw_data[required])))) stop("Input contains non-finite values")
+if (any(raw_data$Expenditure <= 0)) stop("Expenditure must be positive for log analysis")
+if (any(!raw_data$Quarter %in% 1:4)) stop("Quarter must be 1 to 4")
+if (any(diff(raw_data$Year * 4 + raw_data$Quarter) != 1)) stop("Rows must be consecutive quarters in order")
+raw_data$Value <- raw_data$Expenditure
+dir.create("outputs", showWarnings = FALSE)
 
 # Clean and structure the dataset
 demand_data <- raw_data %>%
@@ -52,7 +62,7 @@ demand_data$Cyclical_MA5 <- rollmean(demand_data$Log_Value,
 # 5. SEASONALITY EXTRACTION
 # ------------------------------------------------------------------------------
 # Convert raw values into a formal Time-Series (ts) object (Quarterly Frequency)
-ts_demand <- ts(demand_data$Value, frequency = 4)
+ts_demand <- ts(demand_data$Value, start = c(raw_data$Year[1], raw_data$Quarter[1]), frequency = 4)
 
 # Decompose the time series to extract the exact seasonal coefficients
 decomposed_ts <- decompose(ts_demand, type = "multiplicative")
@@ -65,7 +75,7 @@ print(seasonality_factors)
 # 6. DATA VISUALIZATION (EXECUTIVE REPORTING)
 # ------------------------------------------------------------------------------
 # Plot 1: Actual Demand vs. Quadratic Baseline Trend
-ggplot(demand_data, aes(x = Time_Index)) +
+trend_plot <- ggplot(demand_data, aes(x = Time_Index)) +
   geom_line(aes(y = Log_Value, color = "Actual Log-Demand"), size = 1) +
   geom_line(aes(y = Baseline_Trend, color = "Quadratic Trend"), size = 1.2, linetype = "dashed") +
   labs(title = "Long-Term Demand Trend Analysis",
@@ -77,3 +87,11 @@ ggplot(demand_data, aes(x = Time_Index)) +
 # ==============================================================================
 # END OF SCRIPT
 # ==============================================================================
+
+ggsave("outputs/log_trend.png", trend_plot, width = 9, height = 5)
+png("outputs/decomposition.png", width = 1000, height = 800)
+plot(decomposed_ts)
+dev.off()
+write.csv(demand_data, "outputs/analysis.csv", row.names = FALSE)
+write.csv(data.frame(Quarter = 1:4, Seasonal_Factor = seasonality_factors), "outputs/seasonality.csv", row.names = FALSE)
+writeLines(capture.output(sessionInfo()), "outputs/sessionInfo.txt")
